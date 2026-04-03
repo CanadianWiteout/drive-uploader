@@ -1,68 +1,61 @@
 #!/usr/bin/env bash
-# Build Drive Uploader.app for macOS
+# Build a fully standalone Drive Uploader.app using PyInstaller
+# No Python installation required to run the output app.
 
 set -e
 
 APP_NAME="Drive Uploader"
 BUNDLE_ID="com.kootenaycolor.drive-uploader"
 PYTHON="/Library/Frameworks/Python.framework/Versions/3.14/bin/python3"
+PYINSTALLER="/Library/Frameworks/Python.framework/Versions/3.14/bin/pyinstaller"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DIST="$SCRIPT_DIR/dist/$APP_NAME.app"
 
-echo "Building $APP_NAME.app…"
+echo "▶ Building standalone $APP_NAME.app…"
+echo ""
 
-# Install dependencies into the project directory if needed
-if [ ! -d "$SCRIPT_DIR/venv" ]; then
-    echo "Installing dependencies…"
-    "$PYTHON" -m pip install -r "$SCRIPT_DIR/requirements.txt" --quiet
+# ── Install / upgrade PyInstaller ──────────────────────────────────────────
+if ! "$PYINSTALLER" --version &>/dev/null; then
+    echo "Installing PyInstaller…"
+    "$PYTHON" -m pip install --quiet pyinstaller
 fi
 
-# Clean
-rm -rf "$DIST"
-mkdir -p "$DIST/Contents/MacOS"
-mkdir -p "$DIST/Contents/Resources"
+# ── Clean previous build ───────────────────────────────────────────────────
+rm -rf "$SCRIPT_DIR/dist" "$SCRIPT_DIR/build" "$SCRIPT_DIR"/*.spec
 
-# Info.plist
-cat > "$DIST/Contents/Info.plist" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleName</key>             <string>$APP_NAME</string>
-  <key>CFBundleDisplayName</key>      <string>$APP_NAME</string>
-  <key>CFBundleIdentifier</key>       <string>$BUNDLE_ID</string>
-  <key>CFBundleVersion</key>          <string>1.0</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleExecutable</key>       <string>launcher</string>
-  <key>CFBundlePackageType</key>      <string>APPL</string>
-  <key>NSHighResolutionCapable</key>  <true/>
-  <key>LSMinimumSystemVersion</key>   <string>12.0</string>
-</dict>
-</plist>
-EOF
+# ── Run PyInstaller ────────────────────────────────────────────────────────
+cd "$SCRIPT_DIR"
 
-# Launcher script
-cat > "$DIST/Contents/MacOS/launcher" << LAUNCHER
-#!/bin/bash
-DIR="\$(cd "\$(dirname "\$0")/../Resources" && pwd)"
-cd "\$DIR"
-exec "$PYTHON" main.py
-LAUNCHER
-chmod +x "$DIST/Contents/MacOS/launcher"
+# Build hidden-import list for Google API client (it uses dynamic imports)
+HIDDEN=(
+    "googleapiclient.discovery"
+    "googleapiclient.http"
+    "google.auth.transport.requests"
+    "google.oauth2.credentials"
+    "google_auth_oauthlib.flow"
+    "customtkinter"
+)
 
-# Copy source files
-for f in main.py drive.py state.py config.py requirements.txt; do
-  cp "$SCRIPT_DIR/$f" "$DIST/Contents/Resources/"
+HIDDEN_ARGS=""
+for h in "${HIDDEN[@]}"; do
+    HIDDEN_ARGS="$HIDDEN_ARGS --hidden-import=$h"
 done
 
-# Copy credentials + token if they exist
-for f in credentials.json token.json; do
-  [ -f "$SCRIPT_DIR/$f" ] && cp "$SCRIPT_DIR/$f" "$DIST/Contents/Resources/"
-done
+# Bundle credentials.json if it exists
+ADD_DATA_ARGS=""
+[ -f "$SCRIPT_DIR/credentials.json" ] && ADD_DATA_ARGS="--add-data credentials.json:."
+[ -f "$SCRIPT_DIR/token.json"       ] && ADD_DATA_ARGS="$ADD_DATA_ARGS --add-data token.json:."
+
+"$PYINSTALLER" \
+    --windowed \
+    --noconfirm \
+    --name "$APP_NAME" \
+    --osx-bundle-identifier "$BUNDLE_ID" \
+    $HIDDEN_ARGS \
+    $ADD_DATA_ARGS \
+    main.py
 
 echo ""
-echo "Done!  →  dist/$APP_NAME.app"
+echo "✓ Done!  →  dist/$APP_NAME.app"
 echo ""
 echo "To install:  cp -r \"dist/$APP_NAME.app\" /Applications/"
 echo "To update:   re-run this script"
