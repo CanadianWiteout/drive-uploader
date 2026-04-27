@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Drive Uploader.app for macOS
+# Build Uplift.app for macOS
 #
 # Uses system Python (not a bundled interpreter) so the app inherits the
 # system's SSL stack — required for macOS 26 compatibility. PyInstaller
@@ -10,8 +10,8 @@
 
 set -e
 
-APP_NAME="Drive Uploader"
-BUNDLE_ID="com.kootenaycolor.drive-uploader"
+APP_NAME="Uplift"
+BUNDLE_ID="com.kootenaycolor.uplift"
 PYTHON="/opt/homebrew/bin/python3.14"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST="$SCRIPT_DIR/dist/$APP_NAME.app"
@@ -35,7 +35,7 @@ cat > "$DIST/Contents/Info.plist" << EOF
   <key>CFBundleIdentifier</key>       <string>$BUNDLE_ID</string>
   <key>CFBundleVersion</key>          <string>1.0</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleExecutable</key>       <string>Drive Uploader</string>
+  <key>CFBundleExecutable</key>       <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>      <string>APPL</string>
   <key>NSHighResolutionCapable</key>  <true/>
   <key>LSMinimumSystemVersion</key>   <string>12.0</string>
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     char exec_path[4096];
     uint32_t size = sizeof(exec_path);
     if (_NSGetExecutablePath(exec_path, &size) != 0) {
-        fprintf(stderr, "Drive Uploader: could not resolve executable path\n");
+        fprintf(stderr, "Uplift: could not resolve executable path\n");
         return 1;
     }
 
@@ -83,14 +83,14 @@ int main(int argc, char *argv[]) {
     execv(python, args);
 
     // Only reached if execv fails
-    fprintf(stderr, "Drive Uploader: failed to launch Python at %s\n", python);
+    fprintf(stderr, "Uplift: failed to launch Python at %s\n", python);
     perror("execv");
     return 1;
 }
 CSRC
 
 # Compile the launcher
-clang -O2 -o "$DIST/Contents/MacOS/Drive Uploader" "$LAUNCHER_SRC"
+clang -O2 -o "$DIST/Contents/MacOS/$APP_NAME" "$LAUNCHER_SRC"
 rm -f "$LAUNCHER_SRC"
 
 # ── Source files ────────────────────────────────────────────────────────────

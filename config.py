@@ -1,13 +1,15 @@
-"""Persistent configuration for drive-uploader.
+"""Persistent configuration for Uplift.
 
-Saved to ~/.drive-uploader-config.json so the last-used Drive folder
+Saved to ~/.uplift-config.json so the last-used Drive folder
 is pre-filled on relaunch.
 """
 
 import json
 from pathlib import Path
 
-CONFIG_PATH = Path.home() / ".drive-uploader-config.json"
+CONFIG_PATH = Path.home() / ".uplift-config.json"
+_OLD_PATH   = Path.home() / ".drive-uploader-config.json"  # migration
+
 
 DEFAULTS = {
     "drive_folder_id": "",
@@ -36,8 +38,18 @@ DEFAULTS = {
 }
 
 
+def _migrate():
+    """One-time rename of old config file from drive-uploader era."""
+    if _OLD_PATH.exists() and not CONFIG_PATH.exists():
+        try:
+            _OLD_PATH.rename(CONFIG_PATH)
+        except OSError:
+            pass
+
+
 def load() -> dict:
     """Load config from disk, merging with defaults for any missing keys."""
+    _migrate()
     cfg = dict(DEFAULTS)
     if CONFIG_PATH.exists():
         try:

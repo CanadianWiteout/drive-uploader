@@ -1,6 +1,6 @@
 """
-Drive Uploader
---------------
+Uplift
+------
 Upload any file or folder from any mounted drive to Google Drive.
 
 Key features:
@@ -581,7 +581,7 @@ class ZipWorker:
         tmp_dir = None
         try:
             folder_name = Path(self._folder).name
-            tmp_dir = tempfile.mkdtemp(prefix="drive-uploader-")
+            tmp_dir = tempfile.mkdtemp(prefix="uplift-")
             zip_path = os.path.join(tmp_dir, folder_name + ".zip")
 
             # Collect all files first so we know the total count
@@ -1456,7 +1456,7 @@ class EmailTemplateDialog(ctk.CTkToplevel):
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Drive Uploader")
+        self.title("Uplift")
         self.geometry("720x740")
         self.minsize(600, 500)
         self.configure(fg_color=BG)
@@ -1488,7 +1488,7 @@ class App(ctk.CTk):
         # Header
         hdr = ctk.CTkFrame(self, fg_color="transparent")
         hdr.pack(fill="x", padx=24, pady=(20, 0))
-        ctk.CTkLabel(hdr, text="Drive Uploader",
+        ctk.CTkLabel(hdr, text="Uplift",
                      font=FONT_TITLE, text_color=TEXT).pack(side="left")
         self._status_dot = ctk.CTkLabel(hdr, text="● Connecting",
                                          font=FONT_SMALL, text_color=TEXT2)
@@ -2130,7 +2130,7 @@ class App(ctk.CTk):
         if entry and entry.is_temp_zip and entry.local_path:
             try:
                 tmp_dir = str(Path(entry.local_path).parent)
-                if tempfile.gettempdir() in tmp_dir or "drive-uploader-" in tmp_dir:
+                if tempfile.gettempdir() in tmp_dir or "uplift-" in tmp_dir:
                     shutil.rmtree(tmp_dir, ignore_errors=True)
             except Exception:
                 pass
@@ -2373,8 +2373,41 @@ class App(ctk.CTk):
         self.destroy()
 
 
+# ── macOS menu bar name fix ───────────────────────────────────────────────────
+
+def _fix_macos_app_name(name: str) -> None:
+    """Set the macOS menu bar application name via NSProcessInfo.
+
+    When launched from a .app bundle that execv's to an external Python binary,
+    macOS loses bundle association and shows "Python" in the menu bar. Patching
+    NSProcessInfo.processName before the GUI is created fixes this without any
+    additional dependencies (uses the system Objective-C runtime).
+    """
+    try:
+        import ctypes, ctypes.util
+        objc = ctypes.CDLL("/usr/lib/libobjc.A.dylib")
+        objc.objc_getClass.restype    = ctypes.c_void_p
+        objc.sel_registerName.restype = ctypes.c_void_p
+        send = objc.objc_msgSend
+        send.restype = ctypes.c_void_p
+
+        def msg(obj, sel, *args):
+            send.argtypes = ([ctypes.c_void_p, ctypes.c_void_p]
+                             + [type(a) for a in args])
+            return send(obj, objc.sel_registerName(sel.encode()), *args)
+
+        ns_str   = msg(objc.objc_getClass(b"NSString"),
+                       "stringWithUTF8String:",
+                       ctypes.c_char_p(name.encode()))
+        proc     = msg(objc.objc_getClass(b"NSProcessInfo"), "processInfo")
+        msg(proc, "setProcessName:", ctypes.c_void_p(ns_str))
+    except Exception:
+        pass   # non-macOS or objc unavailable — silently skip
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    _fix_macos_app_name("Uplift")
     app = App()
     app.mainloop()

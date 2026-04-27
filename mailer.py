@@ -1,4 +1,4 @@
-"""Gmail SMTP helper for drive-uploader."""
+"""Gmail SMTP helper for Uplift."""
 
 import smtplib
 from email.mime.text import MIMEText

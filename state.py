@@ -1,6 +1,6 @@
-"""Upload state persistence for drive-uploader.
+"""Upload state persistence for Uplift.
 
-Saved atomically to ~/.drive-uploader-state.json so uploads survive crashes.
+Saved atomically to ~/.uplift-state.json so uploads survive crashes.
 """
 
 import json
@@ -12,7 +12,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, List
 
-STATE_PATH = Path.home() / ".drive-uploader-state.json"
+STATE_PATH = Path.home() / ".uplift-state.json"
+_OLD_STATE_PATH = Path.home() / ".drive-uploader-state.json"  # migration
 SESSION_EXPIRY_DAYS = 6  # Google resumable sessions expire after 7 days; clear after 6
 
 
@@ -67,6 +68,12 @@ class StateManager:
         self._load()
 
     def _load(self):
+        # One-time migration from old path
+        if not self._path.exists() and _OLD_STATE_PATH.exists():
+            try:
+                _OLD_STATE_PATH.rename(self._path)
+            except OSError:
+                pass
         if not self._path.exists():
             self._entries = []
             return

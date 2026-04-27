@@ -1,4 +1,4 @@
-# Drive Uploader
+# Uplift
 
 A macOS app for uploading any file or folder to Google Drive — built for large video files on external drives. Includes optional Export Watch (auto-queue Resolve renders) and Email Notification (send client a share link on completion).
 
@@ -64,7 +64,7 @@ cd drive-uploader
 
 # Or build a standalone .app
 bash build.sh
-cp -r "dist/Drive Uploader.app" /Applications/
+cp -r "dist/Uplift.app" /Applications/
 ```
 
 On first launch, click **Manage** next to Google Account to add a Drive account.
@@ -104,7 +104,7 @@ You need a `credentials.json` file from Google Cloud Console for each Google acc
 
 ### Step 5 — Add the account in the app
 
-1. Open Drive Uploader → click **Manage** next to Google Account
+1. Open Uplift → click **Manage** next to Google Account
 2. Click **+ Add Account**
 3. Enter an optional nickname, click **Browse…**, select your `credentials.json`
 4. Click **Connect Google Account** — a browser window opens for sign-in
@@ -151,7 +151,7 @@ You need a `credentials.json` file from Google Cloud Console for each Google acc
 
 ```bash
 bash build.sh
-cp -r "dist/Drive Uploader.app" /Applications/
+cp -r "dist/Uplift.app" /Applications/
 
 # Or double-click Rebuild.app for a one-click rebuild
 ```
@@ -165,13 +165,13 @@ drive-uploader/
 ├── main.py              # GUI app — all UI, upload workers, watch/email panels
 ├── drive.py             # Google Drive API + resumable upload engine
 ├── drive_accounts.py    # Multi-account credential manager
-├── state.py             # Upload session persistence (~/.drive-uploader-state.json)
-├── config.py            # Persistent settings (~/.drive-uploader-config.json)
+├── state.py             # Upload session persistence (~/.uplift-state.json)
+├── config.py            # Persistent settings (~/.uplift-config.json)
 ├── mailer.py            # Gmail SMTP helper
 ├── sender_profile.py    # Sender identity + Keychain password storage
 ├── requirements.txt
 ├── build.sh             # Standalone .app build script
-└── Rebuild.app          # Double-click to rebuild Drive Uploader.app
+└── Rebuild.app          # Double-click to rebuild Uplift.app
 ```
 
 ---

@@ -1,6 +1,6 @@
-"""Sender profile for drive-uploader email notifications.
+"""Sender profile for Uplift email notifications.
 
-Sender identity (name + email) stored in ~/.drive-uploader-profile.json.
+Sender identity (name + email) stored in ~/.uplift-profile.json.
 App password stored securely in macOS Keychain via keyring — never written to disk.
 """
 
@@ -8,12 +8,39 @@ import json
 from pathlib import Path
 import keyring
 
-PROFILE_PATH = Path.home() / ".drive-uploader-profile.json"
-KEYRING_SERVICE = "drive-uploader-email"
+PROFILE_PATH      = Path.home() / ".uplift-profile.json"
+KEYRING_SERVICE   = "uplift-email"
+
+_OLD_PROFILE_PATH    = Path.home() / ".drive-uploader-profile.json"
+_OLD_KEYRING_SERVICE = "drive-uploader-email"
+
+
+def _migrate():
+    """One-time migration from drive-uploader profile/keyring to uplift."""
+    if _OLD_PROFILE_PATH.exists() and not PROFILE_PATH.exists():
+        try:
+            _OLD_PROFILE_PATH.rename(PROFILE_PATH)
+            # Also migrate the keyring entry
+            try:
+                data = json.loads(PROFILE_PATH.read_text())
+                email = data.get("sender_email", "")
+                if email:
+                    old_pw = keyring.get_password(_OLD_KEYRING_SERVICE, email)
+                    if old_pw:
+                        keyring.set_password(KEYRING_SERVICE, email, old_pw)
+                        try:
+                            keyring.delete_password(_OLD_KEYRING_SERVICE, email)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        except OSError:
+            pass
 
 
 def load() -> dict | None:
     """Return {sender_name, sender_email, gmail_app_password}, or None if not set up."""
+    _migrate()
     if not PROFILE_PATH.exists():
         return None
     try:
