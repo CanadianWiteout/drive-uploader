@@ -781,16 +781,19 @@ class EmailChipEntry(ctk.CTkFrame):
         return ", ".join(parts)
 
     def set(self, value: str):
-        """Populate from a comma-separated string."""
+        """Populate from a comma-separated string. Suppresses on_change callback."""
         for f in self._chip_frames:
             f.destroy()
         self._chips.clear()
         self._chip_frames.clear()
         self._entry_var.set("")
         self._has_placeholder = False
+        # Suppress callback during bulk load — caller owns assignment, not yet ready
+        _cb, self._on_change = self._on_change, None
         emails = [e.strip() for e in value.split(",") if e.strip()]
         for email in emails:
             self._add_chip(email)
+        self._on_change = _cb
         if not emails and self._placeholder:
             self._show_placeholder()
 
